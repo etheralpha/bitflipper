@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html" />
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1" name="viewport">
+    <meta name="keywords" content="bitflip, domain, bit, flip, attack">
+    <meta name="description" content="Bit Flipper is a tool for finding valid domains that are 1-bitflip away from the target.">
+    <meta content="© 2021, Ether Alpha. All rights reserved." name="copyright">
+    <meta content="index,follow" name="robots">
+    <title>Bit Flipper</title>
+    <meta name="msapplication-TileColor" content="#fff">
+    <meta name="theme-color" content="#fff">    
+    <link rel="icon" href="https://getbootstrap.com/docs/5.0/assets/img/favicons/favicon.ico">
+
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-BmbxuPwQa2lc/FVzBcNJ7UAyJxM6wuqIj61tLrc4wSX0szH/Ev+nYRRuWlolflfl" crossorigin="anonymous">
+  </head>
+  <body>
+    <nav class="navbar navbar-expand-lg navbar-light bg-light d-flex justify-content-between">
+      <div class="container">
+        <span class="navbar-brand mb-0 h1">Bit Flipper</span>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarSupportedContent">
+        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+          <li class="nav-item">
+            <a class="nav-link" target="_blank" href="https://www.bitfl1p.com/">About</a>
+          </li>
+      </div>
+      </div>
+    </nav>
+    <div class="container">
+      <form class="mt-3">
+        <div class="input-group mb-3">
+          <input id="target" type="text" class="form-control" placeholder="Enter a domain to bit flip" onchange="cleanURL(this.value)">
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" value="" id="filterMisTypes">
+          <label class="form-check-label" for="filterMisTypes">
+            Only show bit flips that are also lateral mistypes
+          </label>
+        </div>
+        <div class="d-grid gap-2 my-3">
+          <input type="button" class="btn btn-primary" value="Bit Flip" onclick="getBitFlippedDomains()">
+        </div>
+      </form>
+      <div class="pt-3 mt-3 border-top">
+        <div id="results" style="display: none;">
+          <div class="d-grid gap-2 my-3">
+            <a href="https://www.namecheap.com/domains/registration/results/?domain=&type=beast" target="_blank" class="btn btn-light">Namecheap Bulk Check
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-box-arrow-in-up-right" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M6.364 13.5a.5.5 0 0 0 .5.5H13.5a1.5 1.5 0 0 0 1.5-1.5v-10A1.5 1.5 0 0 0 13.5 1h-10A1.5 1.5 0 0 0 2 2.5v6.636a.5.5 0 1 0 1 0V2.5a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 .5.5v10a.5.5 0 0 1-.5.5H6.864a.5.5 0 0 0-.5.5z"/><path fill-rule="evenodd" d="M11 5.5a.5.5 0 0 0-.5-.5h-5a.5.5 0 0 0 0 1h3.793l-8.147 8.146a.5.5 0 0 0 .708.708L10 6.707V10.5a.5.5 0 0 0 1 0v-5z"/></svg>
+            </a>
+          </div>
+          <div class="d-grid gap-2 my-3">
+            <input type="button" class="btn btn-outline-primary" value="Copy Domains" onclick="copyDomains()">
+          </div>
+          <p><strong><span id="resultCount"></span> Results</strong></p>
+          <p id="resultDomains"></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="container">
+      <footer class="pt-4 my-md-5 pt-md-5 border-top">
+      </footer>
+    </div>
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/js/bootstrap.bundle.min.js" integrity="sha384-b5kHyXgcpbZJO/tY9Ul7kGkf1S0CWuKcCD38l8YkeH8z8QjE0GmW1gYU5S9FOnJ0" crossorigin="anonymous"></script>
+    <!-- Custom JS -->
+    <script>
+      var showLogs = false;
+      // binary resource: https://www.sciencebuddies.org/science-fair-projects/references/ascii-table
+      var binaryObj = {"-":"00101101", "0":"00110000", "1":"00110001", "2":"00110010", "3":"00110011", "4":"00110100", "5":"00110101", "6":"00110110", "7":"00110111", "8":"00111000", "9":"00111001", "A":"01000001", "B":"01000010", "C":"01000011", "D":"01000100", "E":"01000101", "F":"01000110", "G":"01000111", "H":"01001000", "I":"01001001", "J":"01001010", "K":"01001011", "L":"01001100", "M":"01001101", "N":"01001110", "O":"01001111", "P":"01010000", "Q":"01010001", "R":"01010010", "S":"01010011", "T":"01010100", "U":"01010101", "V":"01010110", "W":"01010111", "X":"01011000", "Y":"01011001", "Z":"01011010", "a":"01100001", "b":"01100010", "c":"01100011", "d":"01100100", "e":"01100101", "f":"01100110", "g":"01100111", "h":"01101000", "i":"01101001", "j":"01101010", "k":"01101011", "l":"01101100", "m":"01101101", "n":"01101110", "o":"01101111", "p":"01110000", "q":"01110001", "r":"01110010", "s":"01110011", "t":"01110100", "u":"01110101", "v":"01110110", "w":"01110111", "x":"01111000", "y":"01111001", "z":"01111010"};
+      var charObj = {"00101101":"-", "00110000":"0", "00110001":"1", "00110010":"2", "00110011":"3", "00110100":"4", "00110101":"5", "00110110":"6", "00110111":"7", "00111000":"8", "00111001":"9", "01000001":"A", "01000010":"B", "01000011":"C", "01000100":"D", "01000101":"E", "01000110":"F", "01000111":"G", "01001000":"H", "01001001":"I", "01001010":"J", "01001011":"K", "01001100":"L", "01001101":"M", "01001110":"N", "01001111":"O", "01010000":"P", "01010001":"Q", "01010010":"R", "01010011":"S", "01010100":"T", "01010101":"U", "01010110":"V", "01010111":"W", "01011000":"X", "01011001":"Y", "01011010":"Z", "01100001":"a", "01100010":"b", "01100011":"c", "01100100":"d", "01100101":"e", "01100110":"f", "01100111":"g", "01101000":"h", "01101001":"i", "01101010":"j", "01101011":"k", "01101100":"l", "01101101":"m", "01101110":"n", "01101111":"o", "01110000":"p", "01110001":"q", "01110010":"r", "01110011":"s", "01110100":"t", "01110101":"u", "01110110":"v", "01110111":"w", "01111000":"x", "01111001":"y", "01111010":"z"};
+      var misTypeObj = {"q":["w"], "w":["q","e"], "e":["w","r"], "r":["e","t"], "t":["r","y"], "y":["t","u"], "u":["y","i"], "i":["u","o"], "o":["i","p"], "p":["o"], "a":["s"], "s":["a","d"], "d":["s","f"], "f":["d","g"], "g":["f","h"], "h":["g","j"], "j":["h","k"], "k":["j","l"], "l":["k"], "z":["x"], "x":["z","c"], "c":["x","v"], "v":["c","b"], "b":["v","n"], "n":["b","m"], "m":["n"], "1":["2"], "2":["1","3"], "3":["2","4"], "4":["3","5"], "5":["4","6"], "6":["5","7"], "7":["6","8"], "8":["7","9"], "9":["8","0"], "0":["9"]};
+      var target = document.getElementById("target");
+      target.addEventListener("keydown", function (e) {
+        if (e.keyCode === 13) {
+          e.preventDefault();
+          getBitFlippedDomains();
+        }
+      });
+      function getBitFlippedDomains() {
+        var domain = document.getElementById('target').value.split('.')[0];
+        var tld = document.getElementById('target').value.split('.')[1] || "com";
+        const domainArr = domain.split('');
+        var flippedDomains = [];
+        var misTypes = [];
+        misTypes = getMisTypedDomains(domain);
+        var filterMisTypes = document.getElementById("filterMisTypes").checked;
+        log("domain: " + domain);
+        log("domain split: " + domainArr);
+        for (var letter in domainArr) {
+          var binary = convert(domainArr[letter]);
+          const bitArr = binary.split('');
+          log("\nletter: " + domainArr[letter] + ", binary: " + binary);
+          log("bitArr: " + bitArr);
+          for (const bit in bitArr) {
+            var newBitArr = cleanCopy(bitArr);
+            var newBit = flipBit(newBitArr[bit]);
+            newBitArr[bit] = newBit;
+            var newBinary = newBitArr.join('');
+            log("\n\tnext bit...");
+            log("\t\tbit: " + bitArr[bit]);
+            log("\t\tnewBit: " + newBit);
+            log("\t\tnewBinary: " + newBinary);
+            if (isValidChar(newBinary)) {
+              var newDomainArr = cleanCopy(domainArr);
+              var newLetter = convert(newBinary);
+              newDomainArr[letter] = newLetter;
+              var newDomain = newDomainArr.join('').toLowerCase();
+              log("\t\t\t\tnewBinary: " + newBinary + ", newLetter: " + newLetter);
+              log("\t\t\t\tdomainArr: " + domainArr);
+              log("\t\t\t\tnewDomain: " + newDomain);
+              if (isValidDomain(newDomain) && isMisType(filterMisTypes, newDomain, misTypes)) {
+                log("\t\t\t\t\tadded " + newDomain);
+                flippedDomains.push(newDomain + "." + tld);
+              }
+            }
+          }
+        }
+        showResults(removeDuplicates(flippedDomains));
+      }
+      function getMisTypedDomains(domain) {
+        var domainArr = domain.toLowerCase().split("");
+        var misTypes = [];
+        for (var character in domainArr) {
+          var letter = domainArr[character]
+          var misTypeArr = misTypeObj[letter];
+          for (var misType in misTypeArr) {
+            var tempDomainArr = cleanCopy(domainArr);
+            var misTypedLetter = misTypeArr[misType];
+            tempDomainArr[character] = misTypedLetter;
+            misTypes.push(tempDomainArr.join(""));
+          }
+        }
+        log("MisTypes: " + misTypes);
+        return misTypes;
+      }
+      function showResults(arr) {
+        var resultCount = arr.length;
+        var resultDomains = "";
+        for (domain in arr) {
+          resultDomains += arr[domain] + "<br>";
+        }
+        document.getElementById('resultCount').innerHTML = resultCount;
+        document.getElementById('resultDomains').innerHTML = resultDomains;
+        document.getElementById("results").style.display = "block";
+      }
+      function convert(key) {
+        return key.length === 1 ? binaryObj[key] : charObj[key]
+      }
+      function flipBit(bit) {
+        return bit.toString() === "0" ? "1" : "0"
+      }
+      function cleanCopy(i) {
+        return JSON.parse(JSON.stringify(i))
+      }
+      function cleanURL(entry) {
+        log("Cleaned 0/5: " + cleaned);
+        var cleaned = entry.replace("https:", "");
+        log("Cleaned 1/5: " + cleaned);
+        var cleaned = cleaned.replace("http:", "");
+        log("Cleaned 2/5: " + cleaned);
+        var cleaned = cleaned.replace("//", "");
+        log("Cleaned 3/5: " + cleaned);
+        var cleaned = cleaned.replace("www.", "");
+        log("Cleaned 4/5: " + cleaned);
+        var cleaned = cleaned.split("/")[0];
+        log("Cleaned 5/5: " + cleaned);
+        document.getElementById('target').value = cleaned;
+      }
+      function isValidChar(char) {
+        log("\t\t\tisValidChar: " + char);
+        log("\t\t\tchar in charObj: " + (char in charObj));
+        log("\t\t\tchar in binaryObj: " + (char in binaryObj));
+        if (char in charObj || char in binaryObj ) {
+          log("\t\t\t\tconverted: " + convert(char));
+          return true
+        } else {
+          return false
+        }
+      }
+      // Valid characters are (a-z), (A-Z), (0-9)
+      // The only symbol allowed is a hyphen (-) but cna't be at the start or end or have consecutive hyphens
+      // Any other symbols like asterisks (*), under scores (_), and exclamation points (!) are not allowed
+      function isValidDomain(domain) {
+        log("\t\t\t\t\tchecking domain validity...");
+        var isValid = true;
+        var domainArr = domain.split('');
+        var target = document.getElementById('target').value.split('.')[0];
+        if (domainArr[0] === "-" || domainArr[domainArr.length] === "-") {
+          log("\t\t\t\t\tinvalid domain: dash at start or finish");
+          isValid = false;
+        }
+        if (domain.includes("--")) {
+          log("\t\t\t\t\tinvalid domain: double dash");
+          isValid = false;
+        }
+        if (domain.length != target.length) {
+          log("\t\t\t\t\tinvalid domain: length of " + domain.length + " != " + target.length);
+          isValid = false;
+        }
+        if (domain == target) {
+          log("\t\t\t\t\tinvalid domain: same as original");
+          isValid = false;
+        }
+        return isValid
+      }
+      function isMisType(filterMisTypes, domain, misTypes) {
+        if (filterMisTypes) {
+          if (misTypes.includes(domain.toLowerCase())) {
+            return true;
+          } else {
+            return false;
+          }
+        } else {
+          return true;
+        }
+      }
+      function removeDuplicates(arr) {
+        var cleanerArr = [];
+        for (var item in arr) {
+          var itemLower = arr[item].toLowerCase();
+          if (!cleanerArr.includes(itemLower)) {
+            cleanerArr.push(itemLower);
+          }
+        }
+        return cleanerArr.sort()
+      }
+      function log(msg) {
+        if (showLogs) {
+          console.log(msg);
+        }
+      }
+      function copyDomains() {
+        var element = document.getElementById("resultDomains");
+        var range, selection, worked;
+        if (document.body.createTextRange) {
+          range = document.body.createTextRange();
+          range.moveToElementText(element);
+          range.select();
+        } else if (window.getSelection) {
+          selection = window.getSelection();        
+          range = document.createRange();
+          range.selectNodeContents(element);
+          selection.removeAllRanges();
+          selection.addRange(range);
+        }
+        document.execCommand("copy");
+      }
+
+    </script>
+  </body>
+</html>
